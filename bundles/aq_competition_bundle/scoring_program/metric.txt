@@ -1,1 +1,1 @@
-mse_metric
+smape_metric
