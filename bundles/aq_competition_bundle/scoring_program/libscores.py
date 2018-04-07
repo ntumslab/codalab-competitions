@@ -188,6 +188,11 @@ def mse_metric(solution, prediction):
     mse = np.mean((solution-prediction)**2)
     return np.mean(mse)
 
+def smape_metric(solution, prediction):
+    numerator = np.absolute(prediction - solution)
+    denumerator = (prediction + solution) / 2
+    smape = np.mean( np.divide(numerator, denumerator, out=np.zeros_like(numerator), where=denumerator!=0) )  
+    return smape
 
 # ======= Pre-made metrics ========
 

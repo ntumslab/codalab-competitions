@@ -29,7 +29,7 @@ default_input_dir = root_dir + "scoring_input_1_1"
 default_output_dir = root_dir + "scoring_output"
 
 # Debug flag 0: no debug, 1: show all scores, 2: also show version and listing of dir
-debug_mode = 1
+debug_mode = 0
 
 # Constant used for a missing score
 missing_score = -0.999999
@@ -100,9 +100,12 @@ if __name__ == "__main__":
             pd_merged_pm10 = pd_merged_all[['submit_date', 'test_id', 'PM10_x', 'PM10_y']].replace('', np.nan, regex=True).dropna(subset=['PM10_x']).replace(np.nan, 0, regex=True)
             pd_merged_o3 = pd_merged_all[['submit_date', 'test_id', 'O3_x', 'O3_y']].replace('', np.nan, regex=True).dropna(subset=['O3_x']).replace(np.nan, 0, regex=True)
 
+            pd_merged_pm25_arr_sol = pd_merged_pm25.as_matrix(columns=['PM2.5_x']) 
+            pd_merged_pm25_arr_pred = pd_merged_pm25.as_matrix(columns=['PM2.5_y']) 
+
             try:
                 # Compute the score prescribed by the metric file 
-                score = scoring_function(solution, prediction)
+                score = scoring_function(pd_merged_pm25_arr_sol, pd_merged_pm25_arr_pred)
                 print(
                     "======= Set %d" % set_num + " (" + predict_name.capitalize() + "): score(" + score_name + ")=%0.12f =======" % score)
                 html_file.write(
@@ -115,6 +118,7 @@ if __name__ == "__main__":
                 write_scores(html_file, scores)
 
         except Exception as inst:
+#            raise
             score = missing_score
             print(
                 "======= Set %d" % set_num + " (" + basename.capitalize() + "): score(" + score_name + ")=ERROR =======")
