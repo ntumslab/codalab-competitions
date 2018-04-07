@@ -1,0 +1,53 @@
+admin_names: chchen
+allow_public_submissions: true
+allow_teams: true
+anonymous_leaderboard: false
+description: KDDCUP 2018 Air Quality Competition
+disallow_leaderboard_modifying: true
+enable_detailed_results: true
+enable_forum: false
+enable_per_submission_metadata: false
+end_date: null
+force_submission_to_leaderboard: true
+has_registration: false
+html:
+  data: data.html
+  evaluation: evaluation.html
+  overview: overview.html
+  terms: terms.html
+image: logo.png
+leaderboard:
+  columns:
+    Duration:
+      label: Duration
+      leaderboard: &id001
+        label: Results
+        rank: 1
+      numeric_format: 2
+      rank: 7
+    set1_score:
+      label: Prediction score
+      leaderboard: *id001
+      numeric_format: 4
+      rank: 2
+  leaderboards:
+    Results: *id001
+phases:
+  1:
+    color: green
+    description: 'AQ'
+    execution_time_limit: 500
+#    ingestion_program: ingestion_program_1_2.zip
+#    input_data: input_data_1_2.zip
+    is_scoring_only: true
+    label: 20170415_20170515
+    max_submissions: 100000
+    max_submissions_per_day: 1000
+    phasenumber: 1
+#    public_data: input_data_1_2.zip
+    reference_data: reference_data_1.zip
+    scoring_program: scoring_program_1_2.zip
+    start_date: 2018-04-01 00:00:01+00:00
+#    starting_kit: iris_starting_kit.zip
+show_datasets_from_yaml: true
+title: AQ

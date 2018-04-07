@@ -1,0 +1,13 @@
+<h1>Iris: Evaluation</h1>
+<p>The problem is a multiclass classification problem. Each sample (an Iris) is characterized by its sepal and petal width and length (4 features). You must predict the Iris categories: setosa, virginica, or versicolor.&nbsp;<br />You are given for training a data matrix X_train of dimension num_training_samples x num_features and an array y_train of labels of dimension num_training_samples. You must train a model which predicts the labels for two test matrices X_valid and X_test.&nbsp;<br />To prepare your submission, remember to use&nbsp;predict_proba, which provides a matrix of prediction scores scaled between 0 and 1. The dimension of the matrix is num_pattern x num_classes. Each line represents the probabilities of class membership, which sum up to one. Preparing your submission with the&nbsp;starting kit&nbsp;is the easiest.&nbsp;<br /><br />There are 2 phases:</p>
+<ul>
+<li><strong>Phase 1:</strong> development phase.&nbsp;We provide you with labeled training data and unlabeled validation and test data. Make predictions for both datasets. However, you will receive feed-back on your performance on the validation set only. The performance of your LAST submission will be displayed on the leaderboard.</li>
+<li><strong>Phase 2:</strong> final phase.&nbsp;You do not need to do anything. Your last submission of phase 1 will be automatically forwarded. Your performance on the test set will appear on the leaderboard when the organizers finish checking the submissions.</li>
+</ul>
+<p>This sample competition allows you to submit either:</p>
+<ul>
+<li>Only prediction results (no code).</li>
+<li>A pre-trained prediction model.</li>
+<li>A prediction model that must be trained and tested.</li>
+</ul>
+<p>The submissions are evaluated using the&nbsp;<strong>mse_metric&nbsp;</strong>metric. This metric computes the balanced accuracy (that is the average of the per class accuracies). The metric is re-scaled linearly between 0 and 1, 0 corresponding to a random guess and 1 to perfect predictions.</p>
