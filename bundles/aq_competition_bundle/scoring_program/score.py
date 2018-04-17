@@ -25,7 +25,7 @@ import numpy as np
 
 # Default I/O directories:
 root_dir = "./"
-default_input_dir = root_dir + "scoring_input_1_2"
+default_input_dir = root_dir + "scoring_input_1_3"
 default_output_dir = root_dir + "scoring_output"
 
 # Debug flag 0: no debug, 1: show all scores, 2: also show version and listing of dir
@@ -39,6 +39,20 @@ scoring_version = 1.0
 
 # Const list
 aq_list = ['pm25', 'pm10', 'o3']
+london_stat_list = ['BL0', 'CD9', 'CD1', 'GN0', 'GR4', 'GN3', 'GR9', 'HV1', 'KF1', 'LW2', 'ST5', 'TH4', 'MY7']
+lon_stat_type = {}
+bj_stat_type = {}
+bj_stat_type['urban'] = ['dongsi_aq','tiantan_aq','guanyuan_aq','wanshouxig_aq','aotizhongx_aq','nongzhangu_aq','wanliu_aq','beibuxinqu_aq','zhiwuyuan_aq','fengtaihua_aq','yungang_aq','gucheng_aq']
+bj_stat_type['suburban'] = ['fangshan_aq','daxing_aq','yizhuang_aq','tongzhou_aq','shunyi_aq','pingchang_aq','mentougou_aq','pinggu_aq','huairou_aq','miyun_aq','yanqin_aq']
+bj_stat_type['other'] = ['dingling_aq','badaling_aq','miyunshuik_aq','donggaocun_aq','yongledian_aq','yufa_aq','liulihe_aq']
+bj_stat_type['traffic'] = ['qianmen_aq','yongdingme_aq','xizhimenbe_aq','nansanhuan_aq','dongsihuan_aq']
+lon_stat_type['urban'] = ['BL0', 'KF1']
+lon_stat_type['suburban'] = ['GR4']
+lon_stat_type['roadside'] = ['CD9', 'GN0', 'GN3', 'GR9', 'HV1', 'LW2', 'TH4']
+lon_stat_type['kerbside'] = ['CD1', 'MY7']
+lon_stat_type['industrial'] = ['ST5']
+stat_to_type_map = {}
+
 
 def _HERE(*args):
     h = os.path.dirname(os.path.realpath(__file__))
@@ -49,20 +63,22 @@ def _load_scoring_function():
         metric_name = f.readline().strip()
         return metric_name, getattr(libscores, metric_name)
 
-def _compute_day_smape(cond, pd, date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file, perday_perfix='', label=''):
+def _compute_day_smape(cond, pd, scoring_function, set_num, predict_name, score_name, html_file, score_file, perday_perfix='', label=''):
     '''
     Assume pd is concated.
     '''
+    # count date list again for preventing empty list
+    cur_date_list = pd.submit_date.unique()
     # compute perday smape
     if 'perday' in cond:
-        for d in date_list:
+        for d in cur_date_list:
             aq_d = pd.loc[ pd['submit_date'] == d ]
             score = scoring_function( aq_d.as_matrix(columns=['x']) , aq_d.as_matrix(columns=['y']) )
-            score_file.write("%s_%s" % (perday_perfix,d) + ": %0.12f\n" % (score))
+            score_file.write("%s_%s" % (perday_perfix,d.replace('-','_')) + ": %0.12f\n" % (score))
         return    
     
     smape_score_list = []
-    for d in date_list:
+    for d in cur_date_list:
         aq_d = pd.loc[ pd['submit_date'] == d ]
         score = scoring_function( aq_d.as_matrix(columns=['x']) , aq_d.as_matrix(columns=['y']) )
         smape_score_list.append(score) 
@@ -74,20 +90,38 @@ def _compute_day_smape(cond, pd, date_list, scoring_function, set_num, predict_n
         smape_score_list.sort()
         score_file.write("%s_AVG25" % (label) + ": %0.12f\n" % np.array(smape_score_list[0:25]).mean())
 
-def _compute_smape(level, pd_map, date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file):
+def _compute_smape(level, pd_map, scoring_function, set_num, predict_name, score_name, html_file, score_file):
     if level == 'hr':
         # concate all
         pd_all = pd.concat( [pd_map[aq] for aq in aq_list] )
         # compute smape
-        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['hr'] < 24) ], date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_hr_0_23' )
-        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['hr'] < 48) & (pd_all['hr'] >=24 ) ], date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_hr_24_47' )
-        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['hr'] < 48) ], date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_hr_0_47' )
+        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['hr'] < 24) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_hr_0_23' )
+        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['hr'] < 48) & (pd_all['hr'] >=24 ) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_hr_24_47' )
+        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['hr'] < 48) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_hr_0_47' )
     elif level == 'loc':
-        pass
+        pd_all = pd.concat( [pd_map[aq] for aq in aq_list] )
+        stat_list = pd_all.stat_id.unique()
+
+        _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['stat_id'].isin(london_stat_list) ) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='lon_all' )
+        _compute_day_smape( ['avg','top25'], pd_all.loc[ ~(pd_all['stat_id'].isin(london_stat_list) ) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='bj_all' )
+        for stat in stat_list:
+            country = 'bj'
+            if stat in london_stat_list:
+                country = 'lon'
+#            print (stat)
+#            print (pd_all.loc[ (pd_all['stat_id'] == stat )])
+            _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['stat_id'] == stat ) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='%s_%s_%s' % (country, stat_to_type_map[stat],stat) )
+        for stat_type in bj_stat_type:
+            country = "bj"
+            _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['stat_id'].isin( bj_stat_type[stat_type] ) ) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='%s_%s_%s' % (country, stat_type, "all") )
+        for stat_type in lon_stat_type:
+            country = "lon"
+            _compute_day_smape( ['avg','top25'], pd_all.loc[ (pd_all['stat_id'].isin( lon_stat_type[stat_type] ) ) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='%s_%s_%s' % (country, stat_type, "all") )
+            
 
     elif level == 'aq':
         for aq in aq_list:
-            _compute_day_smape( ['avg','top25'], pd_map[aq], date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_aq_%s' % (aq) )
+            _compute_day_smape( ['avg','top25'], pd_map[aq], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_aq_%s' % (aq) )
 
     else:
        raise Exception('Error in calculation of the specific score of the task: level error')
@@ -106,6 +140,14 @@ if __name__ == "__main__":
     mkdir(output_dir)
     score_file = open(os.path.join(output_dir, 'scores.txt'), 'wb')
     html_file = open(os.path.join(output_dir, 'scores.html'), 'wb')
+
+    # station to type
+    for stype in bj_stat_type:
+        for sid in bj_stat_type[stype]:
+            stat_to_type_map[sid] = stype
+    for stype in lon_stat_type:
+        for sid in lon_stat_type[stype]:
+            stat_to_type_map[sid] = stype
 
     # Get the metric
     metric_name, scoring_function = _load_scoring_function()
@@ -135,20 +177,31 @@ if __name__ == "__main__":
             if (len(pd_solution) != len(pd_prediction)): raise ValueError(
                 "Bad prediction shape {}".format(prediction.shape))
 
-            # Get data list
-            date_list = pd_solution.submit_date.unique()
-
             # Do leftjoin sol and pred data
             pd_merged_all = pd.merge( pd_solution, pd_prediction, how='left', on=['submit_date','test_id'] )
-            # ['submit_date', 'test_id', 'PM2.5_x', 'PM10_x', 'O3_x', 'PM2.5_y', 'PM10_y', 'O3_y']
-
+            # current cols: ['submit_date', 'test_id', 'PM2.5_x', 'PM10_x', 'O3_x', 'PM2.5_y', 'PM10_y', 'O3_y']
+            
             # Data preprocessing: Split test_id
             pd_merged_all['stat_id'], pd_merged_all['hr'] = pd_merged_all['test_id'].str.split('#', 1).str
+
+            # Data preprocessing: Replace negative values with np.nan
+            pd_merged_all[ pd_merged_all < 0 ] = np.nan
+
+            # Data clean: remove missing value
+            pd_merged_lon = pd_merged_all.loc[ pd_merged_all['stat_id'].isin(london_stat_list) ]
+            pd_merged_bj = pd_merged_all.loc[ ~pd_merged_all['stat_id'].isin(london_stat_list) ]
+
+            pd_merged_lon = pd_merged_lon.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x'], how='any' ).replace(np.nan, 0, regex=True)
+            pd_merged_bj = pd_merged_bj.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x', 'O3_x'], how='any' ).replace(np.nan, 0, regex=True)
+
+            pd_merged_all = pd.concat( [pd_merged_lon, pd_merged_bj] )
+            
+
             # Data clean: filter missing value
             pd_merged_map = {}
-            pd_merged_map['pm25'] = pd_merged_all[['submit_date', 'test_id', 'PM2.5_x', 'PM2.5_y', 'stat_id', 'hr']].replace('', np.nan, regex=True).dropna(subset=['PM2.5_x']).replace(np.nan, 0, regex=True)
-            pd_merged_map['pm10'] = pd_merged_all[['submit_date', 'test_id', 'PM10_x', 'PM10_y', 'stat_id', 'hr']].replace('', np.nan, regex=True).dropna(subset=['PM10_x']).replace(np.nan, 0, regex=True)
-            pd_merged_map['o3'] = pd_merged_all[['submit_date', 'test_id', 'O3_x', 'O3_y', 'stat_id', 'hr']].replace('', np.nan, regex=True).dropna(subset=['O3_x']).replace(np.nan, 0, regex=True)
+            pd_merged_map['pm25'] = pd_merged_all[['submit_date', 'test_id', 'PM2.5_x', 'PM2.5_y', 'stat_id', 'hr']]
+            pd_merged_map['pm10'] = pd_merged_all[['submit_date', 'test_id', 'PM10_x', 'PM10_y', 'stat_id', 'hr']]
+            pd_merged_map['o3'] = pd_merged_all[['submit_date', 'test_id', 'O3_x', 'O3_y', 'stat_id', 'hr']]
             # Data clean: rename columns
             pd_merged_map['pm25'].rename(columns={'PM2.5_x':'x', 'PM2.5_y':'y'}, inplace=True)
             pd_merged_map['pm10'].rename(columns={'PM10_x':'x', 'PM10_y':'y'}, inplace=True)
@@ -160,15 +213,15 @@ if __name__ == "__main__":
             try:
                 # Perday smape
                 pd_all = pd.concat([ pd_merged_map[aq] for aq in aq_list ])
-                _compute_day_smape('perday', pd_all, date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file, perday_perfix='all')
+                _compute_day_smape('perday', pd_all, scoring_function, set_num, predict_name, score_name, html_file, score_file, perday_perfix='all')
                 # 0-23, 24-47, 0-47: total, top25 smape
-                _compute_smape('hr', pd_merged_map, date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file)
+                _compute_smape('hr', pd_merged_map, scoring_function, set_num, predict_name, score_name, html_file, score_file)
                 # City, station: smape X2
-                _compute_smape('loc', pd_merged_map, date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file)
+                _compute_smape('loc', pd_merged_map, scoring_function, set_num, predict_name, score_name, html_file, score_file)
                 # AQ
-                _compute_smape('aq', pd_merged_map, date_list, scoring_function, set_num, predict_name, score_name, html_file, score_file)
+                _compute_smape('aq', pd_merged_map, scoring_function, set_num, predict_name, score_name, html_file, score_file)
             except:
-#                raise
+                raise
                 raise Exception('Error in calculation of the specific score of the task')
 
             if debug_mode > 0:
@@ -176,7 +229,7 @@ if __name__ == "__main__":
                 write_scores(html_file, scores)
 
         except Exception as inst:
-#            raise
+            raise
             score = missing_score
             print(
                 "======= Set %d" % set_num + " (" + basename.capitalize() + "): score(" + score_name + ")=ERROR =======")
