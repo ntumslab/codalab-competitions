@@ -204,9 +204,9 @@ if __name__ == "__main__":
             pd_merged_map['pm10'] = pd_merged_all[['submit_date', 'test_id', 'PM10_x', 'PM10_y', 'stat_id', 'hr']]
             pd_merged_map['o3'] = pd_merged_all[['submit_date', 'test_id', 'O3_x', 'O3_y', 'stat_id', 'hr']].dropna( subset=['O3_x'] )
             # Data clean: rename columns
-            pd_merged_map['pm25'].rename(columns={'PM2.5_x':'x', 'PM2.5_y':'y'}, inplace=True)
-            pd_merged_map['pm10'].rename(columns={'PM10_x':'x', 'PM10_y':'y'}, inplace=True)
-            pd_merged_map['o3'].rename(columns={'O3_x':'x', 'O3_y':'y'}, inplace=True)
+            pd_merged_map['pm25'] = pd_merged_map['pm25'].rename(columns={'PM2.5_x':'x', 'PM2.5_y':'y'})
+            pd_merged_map['pm10'] = pd_merged_map['pm10'].rename(columns={'PM10_x':'x', 'PM10_y':'y'})
+            pd_merged_map['o3'] = pd_merged_map['o3'].rename(columns={'O3_x':'x', 'O3_y':'y'})
             # Data clean: replace nan with 0 in prediction
             pd_merged_map['pm25'] = pd_merged_map['pm25'].replace(np.nan, 0, regex=True)
             pd_merged_map['pm10'] = pd_merged_map['pm10'].replace(np.nan, 0, regex=True)
