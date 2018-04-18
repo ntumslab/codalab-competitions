@@ -25,7 +25,7 @@ import numpy as np
 
 # Default I/O directories:
 root_dir = "./"
-default_input_dir = root_dir + "scoring_input_1_3"
+default_input_dir = root_dir + "scoring_input_1_2"
 default_output_dir = root_dir + "scoring_output"
 
 # Debug flag 0: no debug, 1: show all scores, 2: also show version and listing of dir
@@ -187,25 +187,33 @@ if __name__ == "__main__":
             # Data preprocessing: Replace negative values with np.nan
             pd_merged_all[ pd_merged_all < 0 ] = np.nan
 
-            # Data clean: remove missing value
+            # Data clean: remove missing value in gt
             pd_merged_lon = pd_merged_all.loc[ pd_merged_all['stat_id'].isin(london_stat_list) ]
             pd_merged_bj = pd_merged_all.loc[ ~pd_merged_all['stat_id'].isin(london_stat_list) ]
 
-            pd_merged_lon = pd_merged_lon.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x'], how='any' ).replace(np.nan, 0, regex=True)
-            pd_merged_bj = pd_merged_bj.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x', 'O3_x'], how='any' ).replace(np.nan, 0, regex=True)
+#            pd_merged_lon = pd_merged_lon.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x'], how='any' ).replace(np.nan, 0, regex=True)
+#            pd_merged_bj = pd_merged_bj.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x', 'O3_x'], how='any' ).replace(np.nan, 0, regex=True)
+            pd_merged_lon = pd_merged_lon.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x'], how='any' )
+            pd_merged_bj = pd_merged_bj.replace('', np.nan, regex=True).dropna( subset=['PM2.5_x', 'PM10_x', 'O3_x'], how='any' )
 
             pd_merged_all = pd.concat( [pd_merged_lon, pd_merged_bj] )
-            
 
             # Data clean: filter missing value
             pd_merged_map = {}
             pd_merged_map['pm25'] = pd_merged_all[['submit_date', 'test_id', 'PM2.5_x', 'PM2.5_y', 'stat_id', 'hr']]
             pd_merged_map['pm10'] = pd_merged_all[['submit_date', 'test_id', 'PM10_x', 'PM10_y', 'stat_id', 'hr']]
-            pd_merged_map['o3'] = pd_merged_all[['submit_date', 'test_id', 'O3_x', 'O3_y', 'stat_id', 'hr']]
+            pd_merged_map['o3'] = pd_merged_all[['submit_date', 'test_id', 'O3_x', 'O3_y', 'stat_id', 'hr']].dropna( subset=['O3_x'] )
             # Data clean: rename columns
             pd_merged_map['pm25'].rename(columns={'PM2.5_x':'x', 'PM2.5_y':'y'}, inplace=True)
             pd_merged_map['pm10'].rename(columns={'PM10_x':'x', 'PM10_y':'y'}, inplace=True)
             pd_merged_map['o3'].rename(columns={'O3_x':'x', 'O3_y':'y'}, inplace=True)
+            # Data clean: replace nan with 0 in prediction
+            pd_merged_map['pm25'] = pd_merged_map['pm25'].replace(np.nan, 0, regex=True)
+            pd_merged_map['pm10'] = pd_merged_map['pm10'].replace(np.nan, 0, regex=True)
+            pd_merged_map['o3'] = pd_merged_map['o3'].replace(np.nan, 0, regex=True)
+
+            #print (pd_merged_map['o3'].loc[pd_merged_map['o3']['x'] == np.nan  ])
+
             # Data clean: cast to numeric
             for aq in aq_list:
                 pd_merged_map[aq][['hr']] = pd_merged_map[aq][['hr']].apply(pd.to_numeric)
