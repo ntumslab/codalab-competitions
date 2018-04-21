@@ -67,6 +67,14 @@ def _compute_day_smape(cond, pd, scoring_function, set_num, predict_name, score_
     '''
     Assume pd is concated.
     '''
+    # check if pd is empty
+    if pd.empty:
+        if 'avg' in cond:
+            score_file.write("%s_AVGALL" % (label) + ":\n" )
+        if 'top25' in cond:
+            score_file.write("%s_AVG25" % (label) + ":\n" )
+        return
+
     # count date list again for preventing empty list
     cur_date_list = pd.submit_date.unique()
     # compute perday smape
@@ -122,6 +130,9 @@ def _compute_smape(level, pd_map, scoring_function, set_num, predict_name, score
     elif level == 'aq':
         for aq in aq_list:
             _compute_day_smape( ['avg','top25'], pd_map[aq], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='all_aq_%s' % (aq) )
+            # add bj, lon AQ info
+            _compute_day_smape( ['avg','top25'], pd_map[aq].loc[ pd_map[aq]['stat_id'].isin(london_stat_list) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='lon_aq_%s' % (aq) )
+            _compute_day_smape( ['avg','top25'], pd_map[aq].loc[ ~(pd_map[aq]['stat_id'].isin(london_stat_list)) ], scoring_function, set_num, predict_name, score_name, html_file, score_file, label='bj_aq_%s' % (aq) )
 
     else:
        raise Exception('Error in calculation of the specific score of the task: level error')
